@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Spending Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* General page style */
+        body {
+            background-color: #121212;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Heading */
+        h1 {
+            font-size: 2.5rem;
+            color: white;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        /* Chart containers */
+        .chart-container {
+            width: 90%;
+            max-width: 900px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Individual chart canvas styling */
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Chart titles */
+        .chart-title {
+            font-size: 1.8rem;
+            color: #ddd;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Styling for tooltips */
+        .tooltip-inner {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .tooltip-arrow {
+            border-top-color: #4CAF50;
+        }
+
+        /* Links */
+        .back-link {
+            color: white;
+            font-size: 1.1rem;
+            text-decoration: none;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <br>
+    <br>
+    <br>
+    </br>
+    </br>
+    </br> 
+    <br>
+    <br>
+    <br>
+    </br>
+    </br>
+    </br> 
+    <br>
+    <br>
+    <br>
+    </br>
+    </br>
+    </br> 
+    <br>
+    <br>
+    <br>
+    </br>
+    </br>
+    </br> 
+    <br>
+    <br>
+    <br>
+    </br>
+    </br>
+    </br> 
+    <h1>Monthly Financial Report</h1>
+
+    <!-- First Chart (Bar Chart) -->
+    <div class="chart-container">
+        <div class="chart-title">Total Spending by Category</div>
+        <canvas id="categoryChart"></canvas>
+    </div>
+
+    <!-- Second Chart (Line Chart) -->
+    <div class="chart-container">
+        <div class="chart-title">Spending Over Time</div>
+        <canvas id="spendingOverTimeChart"></canvas>
+    </div>
+
+    <a href="/" class="back-link">Back to Dashboard</a>
+    <br>
+    <br>
+    <br>
+    </br>
+    </br>
+    </br> 
+    <script>
+        // Ensure the values are always valid by using the default filter to avoid undefined/null values
+        const labels = {{ labels | tojson | default('[]') }};   // Category names from the database
+        const totals = {{ totals | tojson | default('[]') }};   // Total amounts for each category
+
+        // Data for the first chart (Bar chart)
+        const categoryData = {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total Amount Spent by Category',
+                    data: totals,   // Use the totals array from the database
+                    borderColor: 'rgba(75, 192, 192, 1)', // Color for the border
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)', // Color for the bars
+                    borderWidth: 2,
+                    borderRadius: 5, // Round corners of bars
+                    borderSkipped: false, // No skipping of the border on one side
+                }
+            ]
+        };
+
+        // Data for the second chart (Line chart for spending over time)
+        const spendingOverTimeData = {
+            labels: labels,  // Month labels on the x-axis
+            datasets: [
+                {
+                    label: 'Spending Over Time',
+                    data: totals,  // Same totals as the bar chart
+                    borderColor: 'rgba(54, 162, 235, 1)', // Line color
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)', // Fill area under the line
+                    borderWidth: 2,
+                    fill: true,  // Fill the area under the line
+                    tension: 0.4,  // Smooth the line
+                }
+            ]
+        };
+
+        // Configure and render the first chart (Bar Chart)
+        const ctx1 = document.getElementById('categoryChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: categoryData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }, // Hide the legend as it's straightforward
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `$${context.raw.toFixed(2)}`; // Display value as currency
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Categories',
+                            color: '#bbb',
+                        },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Total Amount Spent ($)',
+                            color: '#bbb',
+                        },
+                    }
+                }
+            }
+        });
+
+        // Configure and render the second chart (Line Chart for spending over time)
+        const ctx2 = document.getElementById('spendingOverTimeChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: spendingOverTimeData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true },  // Show legend for line chart
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `$${context.raw.toFixed(2)}`; // Display value as currency
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Months',
+                            color: '#bbb',
+                        },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount Spent ($)',
+                            color: '#bbb',
+                        },
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>
