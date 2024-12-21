@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <title>Finance Tracker</title>
     <style>
-        /* Body and Background */
         body {
             font-family: 'Arial', sans-serif;
             background: url('../static/images/behnam-norouzi-RDXcFY5g5O4-unsplash.jpg') no-repeat center center fixed;
@@ -106,7 +105,6 @@
             }
         }
 
-        /* Additional Styles for Icons in Links */
         .nav-links a {
             font-size: 1.2em;
             color: #fff;
@@ -120,22 +118,18 @@
 </head>
 <body>
 
-    <!-- Main Header -->
     <h1>Finance Tracker</h1>
 
-    <!-- Welcome Message -->
     <div class="welcome-msg">
         Welcome, {{ name }}!
     </div>
 
-    <!-- Navigation Links -->
     <div class="nav-links">
         <a href="/view"><i class="fas fa-eye"></i>View Transactions</a> |
         <a href="/monthly_report"><i class="fas fa-chart-line"></i>Monthly Report</a> |
         <a href="/logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
     </div>
 
-    <!-- Form Container -->
     <div class="form-container">
         <form action="/add" method="POST">
             <label for="date">Date:</label>
@@ -168,7 +162,6 @@
         </form>
     </div>
 
-    <!-- Bootstrap and FontAwesome JS -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>

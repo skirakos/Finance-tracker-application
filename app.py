@@ -1,27 +1,22 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import quote as url_quote
 import sqlite3
-
-#from chart import chart_bp  # Import the chart blueprint
+import openpyxl
+from io import BytesIO
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Required for session management
+app.secret_key = 'your_secret_key'
 
-# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = "login"  # Redirects users to login page if not authenticated
+login_manager.login_view = "login"
 
-# Connect to SQLite database
 def connect_db():
     return sqlite3.connect('tracker.db')
 
-# Initialize the database (run this function once to create the table)
 def init_db():
     with connect_db() as con:
-        # Transactions table with user_id foreign key
         con.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +29,6 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
         """)
-        # Users table for authentication
         con.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +38,6 @@ def init_db():
             );
         """)
 
-# User class for Flask-Login
 class User(UserMixin):
     def __init__(self, id, username, email, password_hash):
         self.id = id
@@ -62,9 +55,6 @@ def load_user(user_id):
         return User(*user)
     return None
 
-
-
-# Sign-up route
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -85,10 +75,6 @@ def signup():
                 flash("Username or email already exists. Please try again.", "danger")
     return render_template('signup.html')
 
-
-
-
-# Login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -100,7 +86,7 @@ def login():
             cur.execute("SELECT * FROM users WHERE email = ?", (email,))
             user = cur.fetchone()
 
-        if user and check_password_hash(user[3], password):  # user[3] is the password_hash
+        if user and check_password_hash(user[3], password):
             user_obj = User(*user)
             login_user(user_obj)
             flash("Login successful!", "success")
@@ -108,7 +94,6 @@ def login():
         flash("Invalid email or password. Please try again.", "danger")
     return render_template('login.html')
 
-# Logout route
 @app.route('/logout')
 @login_required
 def logout():
@@ -116,13 +101,11 @@ def logout():
     flash("Logged out successfully.", "info")
     return redirect(url_for('login'))
 
-# Home page (index)
 @app.route('/')
-@login_required  # Protect the index page
+@login_required
 def index():
     return render_template('index.html', name=current_user.username)
 
-# Add transaction route
 @app.route('/add', methods=['POST'])
 @login_required
 def add_transaction():
@@ -131,7 +114,7 @@ def add_transaction():
     amount = request.form['amount']
     category = request.form['category']
     type_ = request.form['type']
-    user_id = current_user.id  # Get the logged-in user's ID
+    user_id = current_user.id
 
     with connect_db() as con:
         cur = con.cursor()
@@ -141,11 +124,10 @@ def add_transaction():
 
     return redirect(url_for('view_transactions'))
 
-# View transactions
 @app.route('/view')
 @login_required
 def view_transactions():
-    user_id = current_user.id  # Get the logged-in user's ID
+    user_id = current_user.id
 
     with connect_db() as con:
         cur = con.cursor()
@@ -153,11 +135,10 @@ def view_transactions():
         transactions = cur.fetchall()
     return render_template('view.html', transactions=transactions)
 
-# Monthly report route
 @app.route('/monthly_report')
 @login_required
 def monthly_report():
-    user_id = current_user.id  # Get the logged-in user's ID
+    user_id = current_user.id
 
     with connect_db() as con:
         cur = con.cursor()
@@ -167,21 +148,48 @@ def monthly_report():
             WHERE user_id = ?
             GROUP BY month
             ORDER BY month;
-        """, (user_id,))  # Filter by the logged-in user
+        """, (user_id,))
         monthly_data = cur.fetchall()
 
-    # Prepare data for the report
     labels = [month for month, _ in monthly_data]
     totals = [total for _, total in monthly_data]
 
-    # Handle case when no data is available
-    if not labels:  # If there are no labels, create a placeholder
+    if not labels:
         labels = ['No data']
         totals = [0]
 
     return render_template('monthly_report.html', labels=labels, totals=totals)
 
+@app.route('/download_transactions')
+@login_required
+def download_transactions():
+    user_id = current_user.id
+    
+    with connect_db() as con:
+        cur = con.cursor()
+        cur.execute("SELECT * FROM transactions WHERE user_id = ?", (user_id,))
+        transactions = cur.fetchall()
+
+    if not transactions:
+        flash("No transactions found for the user.", "warning")
+        return redirect(url_for('view_transactions'))
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Transactions"
+
+    column_titles = ["ID", "Date", "Description", "Amount", "Category", "Type"]
+    ws.append(column_titles)
+
+    for transaction in transactions:
+        ws.append(transaction[1:])
+
+    file_stream = BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+
+    return send_file(file_stream, as_attachment=True, download_name="transactions.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001)
-
